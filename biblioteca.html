@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biblioteca de Treinos | Lucas Avallone</title>
+<style>
+:root{color-scheme:dark;--bg:#090909;--panel:#171717;--line:#383838;--white:#f5f5f5;--gray:#aaa}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--white);font-family:Arial,sans-serif}
+header{padding:22px;border-bottom:1px solid var(--line);font-weight:bold;letter-spacing:2px}
+main{max-width:950px;margin:auto;padding:20px}
+h1{font-size:30px}
+p{color:var(--gray);line-height:1.5}
+nav{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0}
+button,a{padding:12px 16px;border:1px solid var(--line);border-radius:10px;background:#222;color:white;font-weight:bold;text-decoration:none;cursor:pointer}
+button.active{background:white;color:#111}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin:16px 0}
+input,select,textarea{width:100%;padding:13px;margin:7px 0 14px;background:#090909;color:white;border:1px solid #444;border-radius:9px;font-size:16px}
+label{font-weight:bold}
+.item{padding:14px 0;border-bottom:1px solid var(--line)}
+.small{font-size:13px;color:var(--gray)}
+</style>
+</head>
+<body>
+<header>LUCAS AVALLONE<br><span class="small">PERSONAL TRAINER</span></header>
+<main>
+<a href="index.html">← Voltar ao aplicativo</a>
+<h1>Biblioteca de Treinos</h1>
+<p>Salve modelos de fichas e exercícios para reutilizar com seus alunos.</p>
+<nav>
+<button class="active" onclick="showTab('fichas',this)">Fichas salvas</button>
+<button onclick="showTab('nova',this)">Salvar ficha</button>
+<button onclick="showTab('exercicios',this)">Exercícios</button>
+<button onclick="showTab('novoex',this)">Salvar exercício</button>
+</nav>
+<section id="fichas" class="card">
+<h2>Modelos de treino</h2>
+<input id="busca" placeholder="Buscar por nome, divisão ou objetivo..." oninput="render()">
+<div id="lista"></div>
+</section>
+<section id="nova" class="card" hidden>
+<h2>Salvar ficha completa</h2>
+<label>Nome do modelo</label><input id="nome" placeholder="Ex.: Hipertrofia ABC">
+<label>Divisão</label>
+<select id="divisao"><option>Full body</option><option>AB</option><option>ABC</option><option>ABCD</option><option>ABCDE</option><option>Superior/Inferior</option><option>Push/Pull/Legs</option><option>Personalizada</option></select>
+<label>Objetivo</label>
+<select id="objetivo"><option>Hipertrofia</option><option>Emagrecimento</option><option>Força</option><option>Resistência muscular</option><option>Condicionamento físico</option><option>Iniciante</option><option>Mobilidade</option></select>
+<label>Exercícios da ficha (um por linha)</label>
+<textarea id="conteudo" rows="9" placeholder="Treino A — Peito e tríceps&#10;Supino reto — 4x8-12&#10;Supino inclinado — 3x10&#10;Tríceps corda — 3x12"></textarea>
+<button onclick="saveFicha()">Salvar modelo</button>
+</section>
+<section id="exercicios" class="card" hidden>
+<h2>Exercícios salvos</h2>
+<input id="buscaex" placeholder="Buscar exercício..." oninput="renderEx()">
+<div id="listaex"></div>
+</section>
+<section id="novoex" class="card" hidden>
+<h2>Salvar exercício individual</h2>
+<label>Nome</label><input id="exnome" placeholder="Ex.: Agachamento livre">
+<label>Grupo muscular</label><input id="grupo" placeholder="Ex.: Quadríceps">
+<label>Equipamento</label><input id="equip" placeholder="Ex.: Barra e anilhas">
+<label>Execução e observações</label><textarea id="execucao" rows="4" placeholder="Orientações de execução"></textarea>
+<button onclick="saveEx()">Salvar exercício</button>
+</section>
+<p class="small">Esta versão salva os modelos neste navegador e neste aparelho. Ainda não sincroniza com outros dispositivos nem com contas de alunos.</p>
+</main>
+<script>
+const get=(k)=>JSON.parse(localStorage.getItem(k)||'[]');
+const put=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+function showTab(id,btn){
+document.querySelectorAll('main section').forEach(s=>s.hidden=true);
+document.getElementById(id).hidden=false;
+document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+btn.classList.add('active');
+if(id==='fichas')render();
+if(id==='exercicios')renderEx();
+}
+function saveFicha(){
+let nome=document.getElementById('nome').value.trim();
+let conteudo=document.getElementById('conteudo').value.trim();
+if(!nome||!conteudo){alert('Preencha o nome e os exercícios da ficha.');return}
+let arr=get('la_biblioteca_fichas');
+arr.unshift({id:Date.now(),nome,divisao:document.getElementById('divisao').value,objetivo:document.getElementById('objetivo').value,conteudo});
+put('la_biblioteca_fichas',arr);
+document.getElementById('nome').value='';
+document.getElementById('conteudo').value='';
+alert('Modelo salvo na biblioteca!');
+showTab('fichas',document.querySelector('nav button'));
+}
+function render(){
+let q=(document.getElementById('busca').value||'').toLowerCase();
+let arr=get('la_biblioteca_fichas').filter(x=>(x.nome+' '+x.divisao+' '+x.objetivo+' '+x.conteudo).toLowerCase().includes(q));
+document.getElementById('lista').innerHTML=arr.length?arr.map(x=>'<div class="item"><h3>'+esc(x.nome)+'</h3><p>'+esc(x.divisao)+' · '+esc(x.objetivo)+'</p><pre style="white-space:pre-wrap;font:inherit">'+esc(x.conteudo)+'</pre><button onclick="copyFicha('+x.id+')">Copiar texto da ficha</button> <button onclick="delFicha('+x.id+')">Excluir</button></div>').join(''):'<p>Nenhum modelo salvo ainda.</p>';
+}
+function copyFicha(id){
+let x=get('la_biblioteca_fichas').find(x=>x.id===id);
+if(x)navigator.clipboard.writeText(x.nome+'\\nDivisão: '+x.divisao+'\\nObjetivo: '+x.objetivo+'\\n\\n'+x.conteudo).then(()=>alert('Ficha copiada!')).catch(()=>alert('Abra a ficha e copie o texto manualmente.'));
+}
+function delFicha(id){if(confirm('Excluir este modelo?')){put('la_biblioteca_fichas',get('la_biblioteca_fichas').filter(x=>x.id!==id));render()}}
+function saveEx(){
+let nome=document.getElementById('exnome').value.trim();
+if(!nome){alert('Informe o nome do exercício.');return}
+let arr=get('la_biblioteca_exercicios');
+arr.unshift({id:Date.now(),nome,grupo:document.getElementById('grupo').value,equip:document.getElementById('equip').value,execucao:document.getElementById('execucao').value});
+put('la_biblioteca_exercicios',arr);
+['exnome','grupo','equip','execucao'].forEach(id=>document.getElementById(id).value='');
+alert('Exercício salvo!');
+showTab('exercicios',document.querySelectorAll('nav button')[2]);
+}
+function renderEx(){
+let q=(document.getElementById('buscaex').value||'').toLowerCase();
+let arr=get('la_biblioteca_exercicios').filter(x=>(x.nome+' '+x.grupo+' '+x.equip).toLowerCase().includes(q));
+document.getElementById('listaex').innerHTML=arr.length?arr.map(x=>'<div class="item"><h3>'+esc(x.nome)+'</h3><p>'+esc(x.grupo||'Grupo não informado')+' · '+esc(x.equip||'Equipamento não informado')+'</p><p>'+esc(x.execucao||'Sem observações')+'</p><button onclick="delEx('+x.id+')">Excluir</button></div>').join(''):'<p>Nenhum exercício salvo ainda.</p>';
+}
+function delEx(id){if(confirm('Excluir este exercício?')){put('la_biblioteca_exercicios',get('la_biblioteca_exercicios').filter(x=>x.id!==id));renderEx()}}
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+render();renderEx();
+</script>
+</body>
+</html>
+
+
+
